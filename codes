@@ -1,0 +1,245 @@
+package com.example.studentasistant
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.*
+import kotlinx.coroutines.delay
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MaterialTheme(colorScheme = darkColorScheme()) {
+                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF121212)) {
+                    val navController = rememberNavController()
+
+                    NavHost(navController = navController, startDestination = "welcome") {
+                        composable("welcome") { WelcomeScreen { navController.navigate("menu") } }
+                        composable("menu") { MainMenu(navController) }
+                        composable("gpa") { GPAScreen() }
+                        composable("pomodoro") { PomodoroScreen() }
+                        composable("todo") { TodoScreen() }
+                        composable("profile") { ProfileScreen() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun WelcomeScreen(onStart: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(100.dp), tint = Color.Cyan)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("STUDENT HUB", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+        Text("Başarıya giden yolda asistanın", color = Color.Gray, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(60.dp))
+        Button(
+            onClick = onStart,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan, contentColor = Color.Black)
+        ) {
+            Text("Hadi Başlayalım", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
+    }
+}
+
+@Composable
+fun MainMenu(navController: NavController) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+        Text("Araç Kutusu", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        MenuCard("Not Hesaplayıcı", Icons.Default.Calculate) { navController.navigate("gpa") }
+        MenuCard("Odaklanma Sayacı", Icons.Default.Timer) { navController.navigate("pomodoro") }
+        MenuCard("Günlük Görevler", Icons.Default.CheckCircle) { navController.navigate("todo") }
+        MenuCard("Profil ve Hakkında", Icons.Default.Person) { navController.navigate("profile") }
+    }
+}
+// Tekrar kullanılan menü dark mod
+@Composable
+fun MenuCard(title: String, icon: ImageVector, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = Color.Cyan, modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(title, fontSize = 20.sp, color = Color.White)
+        }
+    }
+}
+
+
+@Composable
+fun GPAScreen() {
+    var vize by remember { mutableStateOf("") }
+    var final by remember { mutableStateOf("") }
+    var sonucText by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        Text("Not Hesapla", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Cyan)
+        Spacer(modifier = Modifier.height(24.dp))
+        OutlinedTextField(value = vize, onValueChange = { vize = it }, label = { Text("Vize (%40)") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(value = final, onValueChange = { final = it }, label = { Text("Final (%60)") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = {
+            val v = vize.toFloatOrNull() ?: 0f
+            val f = final.toFloatOrNull() ?: 0f
+            val ort = (v * 0.4f) + (f * 0.6f)
+            sonucText = "Ortalamanız: $ort\n" + if(ort >= 50) "GEÇTİNİZ " else "KALDINIZ "
+        }, modifier = Modifier.fillMaxWidth()) { Text("HESAPLA") }
+        Text(sonucText, color = Color.White, fontSize = 18.sp, modifier = Modifier.padding(top = 20.dp))
+    }
+}
+
+
+@Composable
+fun PomodoroScreen() {
+    var timeLeft by remember { mutableStateOf(1500) }
+    var isRunning by remember { mutableStateOf(false) }
+    var inputMinutes by remember { mutableStateOf("") }
+
+    LaunchedEffect(isRunning) {
+        while (isRunning && timeLeft > 0) {
+            delay(1000L)
+            timeLeft--
+        }
+        if (timeLeft == 0) isRunning = false
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), Arrangement.Center, Alignment.CenterHorizontally) {
+        Text("Odaklanma Zamanı", color = Color.Cyan, fontSize = 24.sp)
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "${timeLeft / 60}:${String.format("%02d", timeLeft % 60)}",
+            fontSize = 80.sp,
+            fontWeight = FontWeight.Thin,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = inputMinutes,
+                onValueChange = { inputMinutes = it },
+                label = { Text("Dakika Gir") },
+                modifier = Modifier.width(120.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color.Cyan)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(
+                onClick = {
+                    val mins = inputMinutes.toIntOrNull() ?: 25
+                    timeLeft = mins * 60
+                    isRunning = false
+                    inputMinutes = ""
+                },
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("AYARLA")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        Row {
+            Button(
+                onClick = { if (timeLeft > 0) isRunning = !isRunning },
+                colors = ButtonDefaults.buttonColors(containerColor = if (isRunning) Color.Red else Color.Cyan)
+            ) {
+                Text(if (isRunning) "DURDUR" else "BAŞLAT", color = Color.Black)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            OutlinedButton(onClick = {
+                timeLeft = 1500
+                isRunning = false
+            }) {
+                Text("SIFIRLA")
+            }
+        }
+    }
+}
+
+
+@Composable
+fun TodoScreen() {
+    val gorevler = remember { mutableStateListOf("Ders notlarını düzenle", "Kotlin çalış") }
+    var yeniGorev by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Yapılacaklar Listesi", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Cyan)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TextField(value = yeniGorev, onValueChange = { yeniGorev = it }, label = { Text("Yeni Görev") }, modifier = Modifier.weight(1f))
+            IconButton(onClick = { if(yeniGorev.isNotBlank()) { gorevler.add(yeniGorev); yeniGorev = "" } }) {
+                Icon(Icons.Default.AddCircle, null, tint = Color.Cyan, modifier = Modifier.size(40.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn {
+            items(gorevler) { gorev ->
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(gorev, color = Color.White, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { gorevler.remove(gorev) }) {
+                            Icon(Icons.Default.Delete, null, tint = Color.Red)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ProfileScreen() {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.AccountCircle, null, modifier = Modifier.size(120.dp), tint = Color.Gray)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Öğrenci Kullanıcı", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text("Okul No: 2212503011", color = Color.Gray)
+        Spacer(modifier = Modifier.height(40.dp))
+        Divider(color = Color.DarkGray)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text("Bu uygulama Kotlin ve Jetpack Compose kullanılarak bir dönem projesi olarak geliştirilmiştir.", fontSize = 14.sp, color = Color.Gray)
+    }
+}
